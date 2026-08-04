@@ -3,7 +3,9 @@ import { createRoot } from 'react-dom/client';
 import './styles.css';
 import heroImage from './assets/bb.png';
 
-const navItems = ['Home', 'How It Works', 'Features', 'Duel'];
+const navItems = ['Home', 'How It Works', 'Modes', 'Log-In'];
+
+// you will find modes function under the name of features
 
 const stats = [
   ['DUELS PLAYED', '10K+'],
@@ -16,6 +18,36 @@ const features = [
   ['Your IDE', 'Code in the IDE you love and submit.', 'code'],
   ['First to AC Wins', 'Whoever solves and gets accepted first, wins.', 'cup'],
   ['No Distractions', 'Clean. Focused. Built for coders.', 'shield'],
+];
+const modes = [
+  {
+    title: 'Battle Royale',
+    tag: 'Contest Mode',
+    meta: 'N Players',
+    text: 'Any number of coders enter one contest. Problems are scored like Codeforces, with points, penalties, and a live leaderboard.',
+    points: ['Codeforces-style scoring', 'Live ranking', 'Best for large contests'],
+  },
+  {
+    title: 'N vs N Team Duel',
+    tag: 'Team Mode',
+    meta: '1v1 to 8v8',
+    text: 'Team A battles Team B. Players choose a side, and team sizes can be uneven for handicap duels like 1v6, 3v2, or 8v8.',
+    points: ['Choose Team A or B', 'Handicap supported', 'Max 8 vs 8'],
+  },
+  {
+    title: 'Single Elimination',
+    tag: 'Bracket Mode',
+    meta: '4 / 8 / 16 / 32',
+    text: 'Players compete through a knockout bracket. Winners advance round by round until only one champion remains.',
+    points: ['Fixed bracket sizes', 'Round-by-round progress', 'One final champion'],
+  },
+  {
+    title: 'Random Matchmaking',
+    tag: 'Queue Mode',
+    meta: 'Auto Pairing',
+    text: 'Coders join a lobby and LetsDuel automatically pairs them. Random matchmaking can also be used to seed bracket tournaments.',
+    points: ['Lobby based', 'Automatic pairing', 'Works with brackets'],
+  },
 ];
 
 function Icon({ type }) {
@@ -70,13 +102,31 @@ function Navbar() {
         <span />
       </button>
 
-      <nav className={`nav-links ${open ? 'is-open' : ''}`}>
-        {navItems.map((item, index) => (
-          <a key={item} className={index === 0 ? 'active' : ''} href="#">
-            {item}
-          </a>
-        ))}
-      </nav>
+    <nav className={`nav-links ${open ? 'is-open' : ''}`}>
+      {navItems.map((item, index) => (
+        <a
+          key={item}
+          className={index === 0 ? 'active' : ''}
+          href={
+            item === 'How It Works'
+              ? '#how-it-works'
+              : item === 'Modes'
+                ? '#modes'
+                : '#'
+          }
+          onClick={(event) => {
+            if (item === 'How It Works' || item === 'Modes') {
+              event.preventDefault();
+              document
+                .getElementById(item === 'How It Works' ? 'how-it-works' : 'modes')
+                ?.scrollIntoView({ behavior: 'smooth' });
+            }
+          }}
+        >
+          {item}
+        </a>
+      ))}
+    </nav>
 
       <div className={`nav-actions ${open ? 'is-open' : ''}`}>
         <a className="signin" href="#">
@@ -213,7 +263,102 @@ function App() {
         </aside>
       </section>
 
-      <section className="feature-strip">
+      
+      <section className="how-it-works" id="how-it-works">
+        <div className="section-heading">
+          <span></span>
+          <p>HOW IT WORKS</p>
+        </div>
+
+        <h2>
+          Duel in <span>5 Steps</span>
+        </h2>
+
+        <div className="steps-grid">
+          <article className="step-card">
+            <strong>01</strong>
+            <h3>Create or Join a Duel</h3>
+            <p>
+              Invite your friends or share a duel link. Everyone joins the same room
+              and gets ready to compete.
+            </p>
+          </article>
+
+          <article className="step-card">
+            <strong>02</strong>
+            <h3>Pick the Challenge</h3>
+            <p>
+              Choose the difficulty and topic, or let the system decide randomly.
+              LetsDuel selects a Codeforces problem that none of the participants
+              have solved before.
+            </p>
+          </article>
+
+          <article className="step-card">
+            <strong>03</strong>
+            <h3>Start the Duel</h3>
+            <p>
+              Once everyone has joined, click Start. A countdown begins, and all
+              participants receive the same problem at the exact same time.
+            </p>
+          </article>
+
+          <article className="step-card">
+            <strong>04</strong>
+            <h3>Code & Submit</h3>
+            <p>
+              Solve the problem on Codeforces. LetsDuel tracks submissions and updates
+              each player’s progress in real time.
+            </p>
+          </article>
+
+          <article className="step-card step-card-wide">
+            <strong>05</strong>
+            <h3>Winner Announced</h3>
+            <p>
+              The first participant to make a valid accepted submission wins. If
+              multiple players solve the problem, the fastest accepted submission
+              takes the victory.
+            </p>
+          </article>
+        </div>
+      </section>
+
+    <section className="modes-section" id="modes">
+  <div className="section-heading">
+    <span></span>
+    <p>DUEL MODES</p>
+  </div>
+
+  <h2>
+    Pick the <span>Rules of War</span>
+  </h2>
+
+  <div className="modes-showcase">
+    {modes.map((mode, index) => (
+      <article className="mode-panel" key={mode.title}>
+        <div className="mode-index">{String(index + 1).padStart(2, '0')}</div>
+
+        <div className="mode-content">
+          <div className="mode-topline">
+            <span>{mode.tag}</span>
+            <b>{mode.meta}</b>
+          </div>
+
+          <h3>{mode.title}</h3>
+          <p>{mode.text}</p>
+
+          <ul>
+            {mode.points.map((point) => (
+              <li key={point}>{point}</li>
+            ))}
+          </ul>
+        </div>
+      </article>
+    ))}
+  </div>
+</section>
+      <section id="how-it-works" className="feature-strip">
         {features.map(([title, text, icon]) => (
           <article className="feature-card" key={title}>
             <div className="feature-icon">
