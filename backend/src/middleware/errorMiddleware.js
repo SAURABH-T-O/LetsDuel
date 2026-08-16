@@ -37,9 +37,7 @@ export const errorHandler = (error, _req, res, _next) => {
 
   res.status(statusCode).json({
     success: false,
-    message: normalizedError.isOperational
-      ? normalizedError.message
-      : 'Internal server error',
+    message: normalizedError.isOperational? normalizedError.message: 'Internal server error',
     details: normalizedError.details || undefined,
     stack: env.nodeEnv === 'development' ? normalizedError.stack : undefined,
   });
