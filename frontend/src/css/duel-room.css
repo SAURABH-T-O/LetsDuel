@@ -186,6 +186,17 @@
   gap: 18px;
 }
 
+.room-mode-grid:has(> :only-child) {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 420px;
+}
+
+.room-mode-note {
+  margin: 16px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
 .room-mode-card {
   display: grid;
   gap: 14px;
@@ -675,4 +686,3 @@
     display: none;
   }
 }
-

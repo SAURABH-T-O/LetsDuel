@@ -42,7 +42,7 @@ export function CreateDuelRoomPage() {
     duration: '30',
     customDuration: '',
   });
-  const [mode, setMode] = useState('battle-royale');
+  const [mode, setMode] = useState('team-duel');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [createdRoom, setCreatedRoom] = useState(null);
@@ -212,24 +212,27 @@ export function CreateDuelRoomPage() {
               exit={{ opacity: 0, x: -18 }}
             >
               <div className="room-mode-grid">
-                {duelRoomModes.map((item) => (
-                  <button
-                    className={`room-mode-card ${mode === item.id ? 'active' : ''}`}
-                    key={item.id}
-                    type="button"
-                    onClick={() => setMode(item.id)}
-                  >
-                    <span>{item.tag}</span>
-                    <h3>{item.title}</h3>
-                    <p>{item.description}</p>
-                    <ul>
-                      {item.highlights.map((highlight) => (
-                        <li key={highlight}>{highlight}</li>
-                      ))}
-                    </ul>
-                  </button>
-                ))}
+                {duelRoomModes
+                  .filter((item) => item.id === 'team-duel')
+                  .map((item) => (
+                    <button
+                      className={`room-mode-card ${mode === item.id ? 'active' : ''}`}
+                      key={item.id}
+                      type="button"
+                      onClick={() => setMode(item.id)}
+                    >
+                      <span>{item.tag}</span>
+                      <h3>{item.title}</h3>
+                      <p>{item.description}</p>
+                      <ul>
+                        {item.highlights.map((highlight) => (
+                          <li key={highlight}>{highlight}</li>
+                        ))}
+                      </ul>
+                    </button>
+                  ))}
               </div>
+              <p className="room-mode-note">Only N vs N Team Duel is available right now. More game modes are coming soon.</p>
 
               {mode === 'single-elimination' && (
                 <div className="config-group">
