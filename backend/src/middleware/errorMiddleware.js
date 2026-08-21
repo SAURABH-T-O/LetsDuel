@@ -2,7 +2,8 @@ import mongoose from 'mongoose';
 import { env, isProduction } from '../config/env.js';
 import { AppError } from '../utils/AppError.js';
 
-export const notFoundHandler = (req, _res, next) => {
+export const notFoundHandler = (req, _res, next) => { //(naming convention)
+// not using res, so named it _res.
   next(new AppError(`Route not found: ${req.method} ${req.originalUrl}`, 404));
 };
 

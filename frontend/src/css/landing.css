@@ -451,14 +451,14 @@ h1 .red {
   transform-origin: left center;
 }
 
-.stats {
+/* .stats {
   align-self: center;
   justify-self: end;
   width: 150px;
   margin-top: 228px;
   opacity: 0;
   animation: fadeIn 900ms 460ms ease forwards;
-}
+} */
 
 .stat {
   margin-bottom: 43px;
@@ -714,7 +714,7 @@ h1 .red {
     top: 11%;
   }
 
-  .stats {
+  /* .stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 20px;
@@ -722,7 +722,7 @@ h1 .red {
     width: auto;
     margin: 7px auto 42px;
     text-align: center;
-  }
+  } */
 
   .stat {
     margin: 0;
@@ -818,10 +818,10 @@ h1 .red {
     border-width: 2px;
   }
 
-  .stats {
+  /* .stats {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 10px;
-  }
+  } */
 
   .stat p {
     font-size: 10px;

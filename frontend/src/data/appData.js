@@ -82,11 +82,11 @@ export const faqGroups = [
   },
 ];
 
-export const stats = [
-  ['DUELS PLAYED', '10K+'],
-  ['ACTIVE CODERS', '5K+'],
-  ['PROBLEMS SOLVED', '50K+'],
-];
+// export const stats = [
+//   ['DUELS PLAYED', '10K+'],
+//   ['ACTIVE CODERS', '5K+'],
+//   ['PROBLEMS SOLVED', '50K+'],
+// ];
 
 export const features = [
   ['Real-time Duels', 'Compete head-to-head in real-time.', 'bolt'],

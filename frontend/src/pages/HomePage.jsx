@@ -1,6 +1,6 @@
 import React from 'react';
 import heroImage from '../assets/bb.png';
-import { stats, features, modes } from '../data/appData';
+import { features, modes } from '../data/appData';
 import { PageTransition } from '../components/common';
 import { Icon, ProtectedDuelLink } from '../components/layout';
 
@@ -64,7 +64,7 @@ export function HomePage() {
           </div>
         </div>
 
-        <aside className="stats">
+        {/* <aside className="stats">
           {stats.map(([label, value]) => (
             <div className="stat" key={label}>
               <span className="stat-line" />
@@ -72,7 +72,7 @@ export function HomePage() {
               <strong>{value}</strong>
             </div>
           ))}
-        </aside>
+        </aside> */}
       </section>
 
       <section className="how-it-works" id="how-it-works">
