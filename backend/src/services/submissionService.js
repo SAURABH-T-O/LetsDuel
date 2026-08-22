@@ -20,14 +20,18 @@ const WRONG_SUBMISSION_PENALTY = 10;
 
 const getParticipant = (room, userId) => {
   return room.participants.find(
-    (participant) =>
-      participant.user.toString() === userId.toString(),
+    (participant) => participant.user.toString() === userId.toString(),
   );
 };
 
+const createPlayerSnapshot = (participant) => ({
+  user: participant.user,
+  username: participant.username,
+  codeforcesHandle: participant.codeforcesHandle,
+});
+
 const isSubmissionInsideRoomWindow = ({ submission, room }) => {
   const submittedAt = getCodeforcesSubmissionDate(submission);
-
   if (!submittedAt) return false;
 
   const submittedAtMs = submittedAt.getTime();
@@ -46,16 +50,10 @@ const toSubmissionDocument = ({
   user,
   problem,
   codeforcesHandle,
-  team,
   submission,
 }) => {
-  const status = mapCodeforcesVerdictToStatus(
-    submission.verdict,
-  );
-
-  const submittedAt = getCodeforcesSubmissionDate(
-    submission,
-  );
+  const status = mapCodeforcesVerdictToStatus(submission.verdict);
+  const submittedAt = getCodeforcesSubmissionDate(submission);
 
   return {
     room: room._id,
@@ -63,20 +61,14 @@ const toSubmissionDocument = ({
     problem: problem._id,
     codeforcesSubmissionId: submission.id,
     codeforcesHandle,
-    team,
-    programmingLanguage:
-      submission.programmingLanguage || null,
+    programmingLanguage: submission.programmingLanguage || null,
     status,
     verdict: submission.verdict || null,
     submittedAt,
-    relativeTimeSeconds:
-      submission.relativeTimeSeconds ?? null,
-    passedTestCount:
-      submission.passedTestCount ?? null,
-    timeConsumedMillis:
-      submission.timeConsumedMillis ?? null,
-    memoryConsumedBytes:
-      submission.memoryConsumedBytes ?? null,
+    relativeTimeSeconds: submission.relativeTimeSeconds ?? null,
+    passedTestCount: submission.passedTestCount ?? null,
+    timeConsumedMillis: submission.timeConsumedMillis ?? null,
+    memoryConsumedBytes: submission.memoryConsumedBytes ?? null,
     pointsAwarded: 0,
     penaltyApplied: 0,
     checkedAt: new Date(),
@@ -89,25 +81,19 @@ const upsertCodeforcesSubmission = async (payload) => {
     room: payload.room,
     user: payload.user,
     problem: payload.problem,
-    codeforcesSubmissionId:
-      payload.codeforcesSubmissionId,
+    codeforcesSubmissionId: payload.codeforcesSubmissionId,
   });
 
   if (existingSubmission) {
     existingSubmission.set({
-      team: payload.team,
-      programmingLanguage:
-        payload.programmingLanguage,
+      programmingLanguage: payload.programmingLanguage,
       status: payload.status,
       verdict: payload.verdict,
       submittedAt: payload.submittedAt,
-      relativeTimeSeconds:
-        payload.relativeTimeSeconds,
+      relativeTimeSeconds: payload.relativeTimeSeconds,
       passedTestCount: payload.passedTestCount,
-      timeConsumedMillis:
-        payload.timeConsumedMillis,
-      memoryConsumedBytes:
-        payload.memoryConsumedBytes,
+      timeConsumedMillis: payload.timeConsumedMillis,
+      memoryConsumedBytes: payload.memoryConsumedBytes,
       checkedAt: payload.checkedAt,
       raw: payload.raw,
     });
@@ -120,8 +106,7 @@ const upsertCodeforcesSubmission = async (payload) => {
     };
   }
 
-  const createdSubmission =
-    await Submission.create(payload);
+  const createdSubmission = await Submission.create(payload);
 
   return {
     submission: createdSubmission,
@@ -135,24 +120,17 @@ const getRelevantCodeforcesSubmissions = async ({
   room,
   count,
 }) => {
-  const codeforcesSubmissions =
-    await getCodeforcesUserSubmissions({
-      handle,
-      from: 1,
-      count,
-    });
+  const codeforcesSubmissions = await getCodeforcesUserSubmissions({
+    handle,
+    from: 1,
+    count,
+  });
 
   return codeforcesSubmissions
     .filter(
       (submission) =>
-        isCodeforcesSubmissionForProblem(
-          submission,
-          problem,
-        ) &&
-        isSubmissionInsideRoomWindow({
-          submission,
-          room,
-        }),
+        isCodeforcesSubmissionForProblem(submission, problem) &&
+        isSubmissionInsideRoomWindow({ submission, room }),
     )
     .sort(
       (submissionA, submissionB) =>
@@ -161,123 +139,10 @@ const getRelevantCodeforcesSubmissions = async ({
     );
 };
 
-const applyWrongSubmissionPenalty = async ({
-  room,
-  participant,
-  problem,
-  submission,
-}) => {
-  const roomProblem = room.problems.find(
-    (item) =>
-      item.problem.toString() ===
-      problem._id.toString(),
-  );
-
-  if (!roomProblem || roomProblem.solvedByTeam) {
-    return;
-  }
-
-  participant.score -= WRONG_SUBMISSION_PENALTY;
-  participant.wrongSubmissions += 1;
-
-  await Submission.updateOne(
-    {
-      room: room._id,
-      user: participant.user,
-      problem: problem._id,
-      codeforcesSubmissionId: submission.id,
-    },
-    {
-      $set: {
-        penaltyApplied: WRONG_SUBMISSION_PENALTY,
-      },
-    },
-  );
-};
-
-const updateTeamScores = (room) => {
-  room.teamAScore = room.participants
-    .filter((participant) => participant.team === 'A')
-    .reduce(
-      (total, participant) => total + participant.score,
-      0,
-    );
-
-  room.teamBScore = room.participants
-    .filter((participant) => participant.team === 'B')
-    .reduce(
-      (total, participant) => total + participant.score,
-      0,
-    );
-};
-
-const applyAcceptedResult = async ({
-  room,
-  participant,
-  problem,
-  roomProblem,
-  acceptedSubmission,
-}) => {
-  if (roomProblem.solvedByTeam) {
-    return {
-      pointsAwarded: 0,
-      penaltyApplied: 0,
-      problemLocked: true,
-      winningTeam: roomProblem.solvedByTeam,
-    };
-  }
-
-  const team = participant.team;
-
-  if (!team) {
-    throw new AppError(
-      'Participant is not assigned to a team',
-      400,
-    );
-  }
-
-  const acceptedAt =
-    getCodeforcesSubmissionDate(
-      acceptedSubmission,
-    ) || new Date();
-
-  participant.score += roomProblem.points;
-  participant.solvedCount += 1;
-  participant.lastAcceptedAt = acceptedAt;
-
-  roomProblem.solvedByTeam = team;
-  roomProblem.acceptedAt = acceptedAt;
-
-  await Submission.updateOne(
-    {
-      room: room._id,
-      user: participant.user,
-      problem: problem._id,
-      codeforcesSubmissionId:
-        acceptedSubmission.id,
-    },
-    {
-      $set: {
-        pointsAwarded: roomProblem.points,
-      },
-    },
-  );
-
-  updateTeamScores(room);
-
-  await room.save();
-
-  return {
-    pointsAwarded: roomProblem.points,
-    penaltyApplied: 0,
-    problemLocked: true,
-    winningTeam: team,
-  };
-};
-
 const syncParticipantSubmissions = async ({
   room,
-  participant,
+  userId,
+  codeforcesHandle,
   problem,
   relevantSubmissions,
 }) => {
@@ -286,108 +151,183 @@ const syncParticipantSubmissions = async ({
   for (const codeforcesSubmission of relevantSubmissions) {
     const payload = toSubmissionDocument({
       room,
-      user: {
-        _id: participant.user,
-      },
+      user: { _id: userId },
       problem,
-      codeforcesHandle:
-        participant.codeforcesHandle,
-      team: participant.team,
+      codeforcesHandle,
       submission: codeforcesSubmission,
     });
 
-    const { submission, created } =
-      await upsertCodeforcesSubmission(
-        payload,
-      );
+    const result = await upsertCodeforcesSubmission(payload);
 
-    if (
-      created &&
-      submission.status !==
-        SUBMISSION_STATUSES.ACCEPTED
-    ) {
-      await applyWrongSubmissionPenalty({
-        room,
-        participant,
-        problem,
-        submission: codeforcesSubmission,
-      });
-    }
-
-    syncedSubmissions.push(submission);
+    syncedSubmissions.push({
+      submission: result.submission,
+      created: result.created,
+    });
   }
 
   return syncedSubmissions;
 };
 
-export const syncCodeforcesSubmissionsForProblem =
-  async ({
-    roomCode,
-    user,
-    problemId,
-    count = DEFAULT_SUBMISSION_FETCH_COUNT,
-  }) => {
-    const room = await DuelRoom.findOne({
-      roomCode: roomCode.toUpperCase(),
-    });
+const getProblemWinner = async ({ room, problem }) => {
+  const acceptedSubmissions = await Submission.find({
+    room: room._id,
+    problem: problem._id,
+    status: SUBMISSION_STATUSES.ACCEPTED,
+  }).sort({ submittedAt: 1 });
 
-    if (!room) {
-      throw new AppError(
-        'Duel room not found',
-        404,
-      );
-    }
+  return acceptedSubmissions[0] || null;
+};
 
-    if (room.status !== ROOM_STATUSES.ACTIVE) {
-      throw new AppError(
-        'Room is not active',
-        400,
-      );
-    }
+const applySubmissionScoring = async ({
+  room,
+  problem,
+  roomProblem,
+  syncedSubmissions,
+}) => {
+  const firstAcceptedSubmission = await getProblemWinner({
+    room,
+    problem,
+  });
 
-    if (room.mode !== GAME_MODES.TEAM_DUEL) {
-      throw new AppError(
-        'Only Team Duel is currently available',
-        400,
-      );
-    }
-
-    const participant = getParticipant(
-      room,
-      user._id,
+  const allSubmissions = syncedSubmissions
+    .filter((item) => item.created)
+    .sort(
+      (a, b) =>
+        new Date(a.submission.submittedAt).getTime() -
+        new Date(b.submission.submittedAt).getTime(),
     );
 
-    if (!participant) {
-      throw new AppError(
-        'You are not a participant in this room',
-        403,
-      );
+  if (!allSubmissions.length) {
+    return {
+      pointsAwarded: 0,
+      penaltyApplied: 0,
+      accepted: Boolean(firstAcceptedSubmission),
+      locked: Boolean(firstAcceptedSubmission),
+      winnerUserId: firstAcceptedSubmission?.user || null,
+    };
+  }
+
+  let pointsAwarded = 0;
+  let penaltyApplied = 0;
+
+  for (const item of allSubmissions) {
+    const submission = item.submission;
+
+    if (
+      firstAcceptedSubmission &&
+      new Date(submission.submittedAt).getTime() >
+        new Date(firstAcceptedSubmission.submittedAt).getTime()
+    ) {
+      continue;
     }
 
-    const roomProblem = room.problems.find(
-      (item) =>
-        item.problem.toString() ===
-        problemId.toString(),
+    const participant = getParticipant(room, submission.user);
+
+    if (!participant) continue;
+
+    if (
+      submission.status === SUBMISSION_STATUSES.ACCEPTED &&
+      submission.codeforcesSubmissionId ===
+        firstAcceptedSubmission?.codeforcesSubmissionId
+    ) {
+      if (submission.pointsAwarded === 0) {
+        participant.score += roomProblem.points;
+        participant.solvedCount += 1;
+        participant.lastAcceptedAt = submission.submittedAt;
+
+        submission.pointsAwarded = roomProblem.points;
+        await submission.save();
+
+        pointsAwarded += roomProblem.points;
+      }
+
+      continue;
+    }
+
+    if (
+      submission.status !== SUBMISSION_STATUSES.ACCEPTED &&
+      submission.penaltyApplied === 0
+    ) {
+      participant.score -= WRONG_SUBMISSION_PENALTY;
+
+      submission.penaltyApplied = WRONG_SUBMISSION_PENALTY;
+      await submission.save();
+
+      penaltyApplied += WRONG_SUBMISSION_PENALTY;
+    }
+  }
+
+  if (firstAcceptedSubmission) {
+    room.winner = createPlayerSnapshot(
+      getParticipant(room, firstAcceptedSubmission.user),
     );
 
-    if (!roomProblem) {
-      throw new AppError(
-        'Problem is not part of this room',
-        400,
-      );
-    }
+    room.status = ROOM_STATUSES.COMPLETED;
+    room.completedAt =
+      firstAcceptedSubmission.submittedAt || new Date();
+  }
 
-    const problem = await Problem.findById(
-      roomProblem.problem,
+  await room.save();
+
+  return {
+    pointsAwarded,
+    penaltyApplied,
+    accepted: Boolean(firstAcceptedSubmission),
+    locked: Boolean(firstAcceptedSubmission),
+    winnerUserId: firstAcceptedSubmission?.user || null,
+  };
+};
+
+export const syncCodeforcesSubmissionsForProblem = async ({
+  roomCode,
+  user,
+  problemId,
+  count = DEFAULT_SUBMISSION_FETCH_COUNT,
+}) => {
+  const room = await DuelRoom.findOne({
+    roomCode: roomCode.toUpperCase(),
+  });
+
+  if (!room) {
+    throw new AppError('Duel room not found', 404);
+  }
+
+  if (room.status !== ROOM_STATUSES.ACTIVE) {
+    throw new AppError('Room is not active', 400);
+  }
+
+  const participant = getParticipant(room, user._id);
+
+  if (!participant) {
+    throw new AppError(
+      'You are not a participant in this room',
+      403,
     );
+  }
 
-    if (!problem) {
-      throw new AppError(
-        'Problem not found',
-        404,
-      );
-    }
+  const roomProblem = room.problems.find(
+    (item) => item.problem.toString() === problemId.toString(),
+  );
 
+  if (!roomProblem) {
+    throw new AppError(
+      'Problem is not part of this room',
+      400,
+    );
+  }
+
+  const problem = await Problem.findById(roomProblem.problem);
+
+  if (!problem) {
+    throw new AppError('Problem not found', 404);
+  }
+
+  const existingWinner = await getProblemWinner({
+    room,
+    problem,
+  });
+
+  if (existingWinner) {
     const relevantSubmissions =
       await getRelevantCodeforcesSubmissions({
         handle: participant.codeforcesHandle,
@@ -396,63 +336,120 @@ export const syncCodeforcesSubmissionsForProblem =
         count,
       });
 
-    const syncedSubmissions =
-      await syncParticipantSubmissions({
-        room,
-        participant,
-        problem,
-        relevantSubmissions,
-      });
-
-    let result = {
-      accepted: false,
-      acceptedAt: null,
-      pointsAwarded: 0,
-      penaltyApplied: 0,
-      problemLocked: Boolean(
-        roomProblem.solvedByTeam,
-      ),
-      winningTeam: roomProblem.solvedByTeam,
-    };
-
-    if (!roomProblem.solvedByTeam) {
-      const acceptedSubmission =
-        findAcceptedCodeforcesSubmission({
-          submissions: relevantSubmissions,
-          problem,
-          startedAt: room.startedAt,
-          endsAt: room.endsAt,
-        });
-
-      if (acceptedSubmission) {
-        result = {
-          accepted: true,
-          acceptedAt:
-            getCodeforcesSubmissionDate(
-              acceptedSubmission,
-            ),
-          ...(await applyAcceptedResult({
-            room,
-            participant,
-            problem,
-            roomProblem,
-            acceptedSubmission,
-          })),
-        };
-      }
-    }
-
-    updateTeamScores(room);
-    await room.save();
+    const syncedSubmissions = await syncParticipantSubmissions({
+      room,
+      userId: user._id,
+      codeforcesHandle: participant.codeforcesHandle,
+      problem,
+      relevantSubmissions,
+    });
 
     return {
       room,
       problem,
-      submissions: syncedSubmissions,
-      problemSolvedBy:
-        roomProblem.solvedByTeam,
-      teamAScore: room.teamAScore,
-      teamBScore: room.teamBScore,
-      result,
+      submissions: syncedSubmissions.map(
+        (item) => item.submission,
+      ),
+      latestAcceptedSubmission: relevantSubmissions.find(
+        (submission) =>
+          submission.verdict === 'OK' &&
+          submission.id === existingWinner.codeforcesSubmissionId,
+      ) || null,
+      result: {
+        accepted: true,
+        acceptedAt: existingWinner.submittedAt,
+        pointsAwarded: 0,
+        penaltyApplied: 0,
+        roomCompleted: room.status === ROOM_STATUSES.COMPLETED,
+        alreadySolved: true,
+        locked: true,
+        winnerUserId: existingWinner.user,
+      },
     };
+  }
+
+  const relevantSubmissions =
+    await getRelevantCodeforcesSubmissions({
+      handle: participant.codeforcesHandle,
+      problem,
+      room,
+      count,
+    });
+
+  const syncedSubmissions = await syncParticipantSubmissions({
+    room,
+    userId: user._id,
+    codeforcesHandle: participant.codeforcesHandle,
+    problem,
+    relevantSubmissions,
+  });
+
+  if (
+    room.mode !== GAME_MODES.BATTLE_ROYALE &&
+    room.mode !== GAME_MODES.CODE_GAUNTLET
+  ) {
+    for (const otherParticipant of room.participants) {
+      if (
+        otherParticipant.user.toString() ===
+        user._id.toString()
+      ) {
+        continue;
+      }
+
+      const otherSubmissions =
+        await getRelevantCodeforcesSubmissions({
+          handle: otherParticipant.codeforcesHandle,
+          problem,
+          room,
+          count,
+        });
+
+      const otherSyncedSubmissions =
+        await syncParticipantSubmissions({
+          room,
+          userId: otherParticipant.user,
+          codeforcesHandle:
+            otherParticipant.codeforcesHandle,
+          problem,
+          relevantSubmissions: otherSubmissions,
+        });
+
+      syncedSubmissions.push(...otherSyncedSubmissions);
+    }
+  }
+
+  const scoringResult = await applySubmissionScoring({
+    room,
+    problem,
+    roomProblem,
+    syncedSubmissions,
+  });
+
+  const acceptedCodeforcesSubmission =
+    await getProblemWinner({
+      room,
+      problem,
+    });
+
+  return {
+    room,
+    problem,
+    submissions: syncedSubmissions.map(
+      (item) => item.submission,
+    ),
+    latestAcceptedSubmission:
+      acceptedCodeforcesSubmission,
+    result: {
+      accepted: scoringResult.accepted,
+      acceptedAt:
+        acceptedCodeforcesSubmission?.submittedAt || null,
+      pointsAwarded: scoringResult.pointsAwarded,
+      penaltyApplied: scoringResult.penaltyApplied,
+      roomCompleted:
+        room.status === ROOM_STATUSES.COMPLETED,
+      alreadySolved: false,
+      locked: scoringResult.locked,
+      winnerUserId: scoringResult.winnerUserId,
+    },
   };
+};
