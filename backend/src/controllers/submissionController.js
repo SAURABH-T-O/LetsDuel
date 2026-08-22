@@ -11,12 +11,12 @@ export const syncCodeforcesProblemSubmissions = asyncHandler(async (req, res) =>
     count: req.validated.body.count,
   });
 
-  emitToDuelRoom(req.validated.params.roomCode, 'submission\:synced', {
+  emitToDuelRoom(req.validated.params.roomCode, 'submission:synced', {
     problem: syncResult.problem,
     submissions: syncResult.submissions,
     result: syncResult.result,
     room: {
-      id: syncResult.room.\_id,
+      id: syncResult.room._id,
       roomCode: syncResult.room.roomCode,
       status: syncResult.room.status,
       participants: syncResult.room.participants,
@@ -32,7 +32,7 @@ export const syncCodeforcesProblemSubmissions = asyncHandler(async (req, res) =>
 });
 
 export const listMySubmissions = asyncHandler(async (req, res) => {
-  const submissions = await Submission.find({ user: req.user.\_id })
+  const submissions = await Submission.find({ user: req.user._id })
     .sort({ submittedAt: -1 })
     .limit(100)
     .populate('problem', 'name contestId index rating url');
@@ -42,5 +42,3 @@ export const listMySubmissions = asyncHandler(async (req, res) => {
     data: { submissions },
   });
 });
-
-removed `submitCode` and `judgeSubmission`; added Codeforces sync controller.  
