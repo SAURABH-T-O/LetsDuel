@@ -41,7 +41,7 @@ const participantSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    penalty: {
+    wrongSubmissions: {
       type: Number,
       default: 0,
     },
@@ -71,6 +71,15 @@ const roomProblemSchema = new mongoose.Schema(
     rating: {
       type: Number,
       required: true,
+    },
+    solvedByTeam: {
+      type: String,
+      enum: ['A', 'B', null],
+      default: null,
+    },
+    acceptedAt: {
+      type: Date,
+      default: null,
     },
   },
   { _id: false },
@@ -120,58 +129,61 @@ const duelRoomSchema = new mongoose.Schema(
       maxlength: 5,
       index: true,
     },
-
     creator: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
       index: true,
     },
-
     mode: {
       type: String,
       enum: Object.values(GAME_MODES),
       required: true,
       index: true,
     },
-
     status: {
       type: String,
       enum: Object.values(ROOM_STATUSES),
       default: ROOM_STATUSES.WAITING,
       index: true,
     },
-
     settings: {
       type: roomSettingsSchema,
       required: true,
     },
-
     participants: {
       type: [participantSchema],
       default: [],
     },
-
     problems: {
       type: [roomProblemSchema],
       default: [],
     },
-
+    teamAScore: {
+      type: Number,
+      default: 0,
+    },
+    teamBScore: {
+      type: Number,
+      default: 0,
+    },
+    winnerTeam: {
+      type: String,
+      enum: ['A', 'B', 'DRAW', null],
+      default: null,
+    },
     startedAt: {
       type: Date,
       default: null,
     },
-
     endsAt: {
       type: Date,
       default: null,
     },
-
     completedAt: {
       type: Date,
       default: null,
     },
-
     cancelledAt: {
       type: Date,
       default: null,
@@ -180,6 +192,10 @@ const duelRoomSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-duelRoomSchema.index({ status: 1, mode: 1, createdAt: -1 });
+duelRoomSchema.index({
+  status: 1,
+  mode: 1,
+  createdAt: -1,
+});
 
 export const DuelRoom = mongoose.model('DuelRoom', duelRoomSchema);

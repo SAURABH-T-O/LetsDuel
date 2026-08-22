@@ -141,7 +141,7 @@ export function HomePage() {
           ))}
         </div>
         <p className="modes-note">
-          <span>Currently, only N vs N Team Duel is playable.</span> Stay tuned — more game modes are on the way.
+          <span>Currently, only N vs N Team Duel is playable.</span> Stay tuned - more game modes are on the way.
         </p>
       </section>
 
