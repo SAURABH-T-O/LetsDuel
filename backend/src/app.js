@@ -8,7 +8,10 @@ import morgan from 'morgan';
 import { env, isDevelopment } from './config/env.js';
 import { errorHandler, notFoundHandler } from './middleware/errorMiddleware.js';
 import { authRouter } from './routes/authRoutes.js';
+import { duelRoomRouter } from './routes/duelRoomRoutes.js';
 import { healthRouter } from './routes/healthRoutes.js';
+import { problemRouter } from './routes/problemRoutes.js';
+import { submissionRouter } from './routes/submissionRoutes.js';
 
 export const createApp = () => {
   const app = express();
@@ -45,6 +48,9 @@ export const createApp = () => {
 
   app.use('/api', healthRouter);
   app.use('/api/auth', authRouter);
+  app.use('/api/problems', problemRouter);
+  app.use('/api/duel-rooms', duelRoomRouter);
+  app.use('/api/submissions', submissionRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
