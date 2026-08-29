@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { supportLinks } from '../data/appData';
-import { isAuthenticated } from '../utils/session';
+import { clearAuthSession, getAuthUser, isAuthenticated } from '../utils/session';
+import { authApi } from '../api';
 
 export function SupportDropdown({ closeMenu }) {
   const [open, setOpen] = useState(false);
@@ -86,6 +87,20 @@ export function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const authed = isAuthenticated();
+  const user = getAuthUser();
+
+  const handleLogout = async () => {
+    setOpen(false);
+    try {
+      await authApi.logout();
+    } catch {
+      // ignore
+    }
+    clearAuthSession();
+    navigate('/');
+  };
+
   const goToSection = (sectionId) => {
     setOpen(false);
 
@@ -136,12 +151,30 @@ export function Navbar() {
       </nav>
 
       <div className={`nav-actions ${open ? 'is-open' : ''}`}>
-        <Link className="signin" to="/login" onClick={() => setOpen(false)}>
-          Sign In
-        </Link>
-        <Link className="get-started" to="/signup" onClick={() => setOpen(false)}>
-          Get Started <span>→</span>
-        </Link>
+        {authed ? (
+          <>
+            <span className="nav-user-badge">
+              <span className="user-icon">👤</span>
+              <span className="user-name">{user?.username || 'Challenger'}</span>
+            </span>
+            <button
+              type="button"
+              className="signout-btn"
+              onClick={handleLogout}
+            >
+              Sign Out
+            </button>
+          </>
+        ) : (
+          <>
+            <Link className="signin" to="/login" onClick={() => setOpen(false)}>
+              Sign In
+            </Link>
+            <Link className="get-started" to="/signup" onClick={() => setOpen(false)}>
+              Get Started <span>→</span>
+            </Link>
+          </>
+        )}
       </div>
     </header>
   );

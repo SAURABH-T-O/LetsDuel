@@ -107,7 +107,7 @@ export const ensureCodeforcesHandleExists = async (handle) => {
   return users[0];
 };
 
-export const verifyCodeforcesCompilationErrorToken = async ({ handle, token }) => {
+export const verifyCodeforcesCompilationErrorToken = async ({ handle, token: _token }) => {
   await ensureCodeforcesHandleExists(handle);
 
   const submissions = await safeFetchJson('user.status', {
@@ -116,17 +116,12 @@ export const verifyCodeforcesCompilationErrorToken = async ({ handle, token }) =
     count: 20,
   });
 
-  const normalizedToken = token.trim();
+  const fifteenMinutesAgo = Date.now() - 15 * 60 * 1000;
 
   const matchingSubmission = submissions.find((submission) => {
-    const verdictMatches = submission.verdict === 'COMPILATION_ERROR';
-    const problemName = submission.problem?.name || '';
-    const programmingLanguage = submission.programmingLanguage || '';
-
-    return (
-      verdictMatches &&
-      (problemName.includes(normalizedToken) || programmingLanguage.includes(normalizedToken))
-    );
+    const isCompilationError = submission.verdict === 'COMPILATION_ERROR';
+    const submittedAtMs = (submission.creationTimeSeconds || 0) * 1000;
+    return isCompilationError && submittedAtMs >= fifteenMinutesAgo;
   });
 
   return {
