@@ -112,9 +112,6 @@ const userSchema = new mongoose.Schema(
   },
 );
 
-userSchema.index({ username: 1 }, { unique: true });
-userSchema.index({ codeforcesHandle: 1 }, { unique: true });
-
 userSchema.methods.comparePassword = function comparePassword(password) {
   return bcrypt.compare(password, this.passwordHash);
 };

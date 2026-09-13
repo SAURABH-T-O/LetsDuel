@@ -14,101 +14,57 @@ const request = async (url, options = {}) => {
     credentials: 'include',
     headers,
     ...options,
+    body: options.body
+      ? typeof options.body === 'string'
+        ? options.body
+        : JSON.stringify(options.body)
+      : undefined,
   });
 
-  const data = await response.json().catch(() => ({}));
+  const payload = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data.message || 'Something went wrong');
+    throw new Error(payload.message || payload.error || 'Request failed');
   }
 
-  return data;
+  return payload;
 };
 
 export const authApi = {
-  login: async (credentials) => {
-    return request('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    });
-  },
-
-  signup: async (data) => {
-    return request('/auth/signup', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
-
-  requestCodeforcesVerification: async (data) => {
-    return request('/auth/codeforces/request-verification', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
-
-  verifyCodeforcesHandle: async (data) => {
-    return request('/auth/codeforces/verify', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
-
-  generateResetToken: async (data) => {
-    return request('/auth/forgot-password/token', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
-
-  verifyIdentity: async (data) => {
-    return request('/auth/forgot-password/verify', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
-
-  resetPassword: async (data) => {
-    return request('/auth/forgot-password/reset', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
-
-  logout: async () => {
-    return request('/auth/logout', {
-      method: 'POST',
-    }).catch(() => ({}));
-  },
+  login: (credentials) => request('/auth/login', { method: 'POST', body: credentials }),
+  signup: (data) => request('/auth/signup', { method: 'POST', body: data }),
+  requestCodeforcesVerification: (data) =>
+    request('/auth/codeforces/request-verification', { method: 'POST', body: data }),
+  verifyCodeforcesHandle: (data) =>
+    request('/auth/codeforces/verify', { method: 'POST', body: data }),
+  generateResetToken: (data) =>
+    request('/auth/forgot-password/token', { method: 'POST', body: data }),
+  verifyIdentity: (data) =>
+    request('/auth/forgot-password/verify', { method: 'POST', body: data }),
+  resetPassword: (data) =>
+    request('/auth/forgot-password/reset', { method: 'POST', body: data }),
+  me: () => request('/auth/me'),
+  logout: () => request('/auth/logout', { method: 'POST' }).catch(() => ({})),
 };
+
+const getCode = (arg) => (typeof arg === 'object' && arg !== null ? arg.roomCode : arg);
 
 export const duelApi = {
-  createRoom: async (data) => {
-    return request('/duel-rooms', {
+  createRoom: (data) => request('/duel-rooms', { method: 'POST', body: data }),
+  fetchRoom: (roomCode) => request(`/duel-rooms/${getCode(roomCode)}`),
+  joinRoom: (roomCode) => request(`/duel-rooms/${getCode(roomCode)}/join`, { method: 'POST' }),
+  moveTeamSlot: ({ roomCode, team, slot }) =>
+    request(`/duel-rooms/${getCode(roomCode)}/team-slot`, {
+      method: 'PATCH',
+      body: { team, slot },
+    }),
+  startContest: (roomCode) => request(`/duel-rooms/${getCode(roomCode)}/start`, { method: 'POST' }),
+  cancelRoom: (roomCode) => request(`/duel-rooms/${getCode(roomCode)}/cancel`, { method: 'POST' }),
+  syncProblemSubmissions: ({ roomCode, problemId, count = 100 }) =>
+    request(`/submissions/rooms/${getCode(roomCode)}/problems/${problemId}/sync`, {
       method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
-
-  fetchRoom: async (roomCode) => {
-    return request(`/duel-rooms/${roomCode}`);
-  },
-
-  joinRoom: async (roomCode) => {
-    return request(`/duel-rooms/${roomCode}/join`, {
-      method: 'POST',
-    });
-  },
-
-  startContest: async (roomCode) => {
-    return request(`/duel-rooms/${roomCode}/start`, {
-      method: 'POST',
-    });
-  },
-
-  cancelRoom: async (roomCode) => {
-    return request(`/duel-rooms/${roomCode}/cancel`, {
-      method: 'POST',
-    });
-  },
+      body: { count },
+    }),
 };
+
+export const getApiOrigin = () => API_BASE_URL.replace(/\/api\/?$/, '');
