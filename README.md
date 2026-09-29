@@ -53,7 +53,6 @@ flowchart LR
     classDef service fill:#fff4e5,stroke:#d98b28,stroke-width:2px
     classDef external fill:#f1f1f1,stroke:#666,stroke-width:2px
     classDef database fill:#eef8ee,stroke:#4b9b4b,stroke-width:2px
-
     class P1,P2,PN player
     class F,B app
     class WS service
