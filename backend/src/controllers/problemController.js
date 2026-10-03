@@ -1,6 +1,15 @@
 import { Problem } from '../models/Problem.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { importCodeforcesProblems } from '../services/problemService.js';
+import { syncCodeforcesProblemset } from '../services/problemSyncService.js';
+
+export const syncProblems = asyncHandler(async (req, res) => {
+  const result = await syncCodeforcesProblemset();
+  res.status(200).json({
+    success: result.success,
+    data: result,
+  });
+});
 
 export const importProblems = asyncHandler(async (req, res) => {
   const result = await importCodeforcesProblems(req.validated.body.problems);

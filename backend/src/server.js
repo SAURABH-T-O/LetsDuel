@@ -3,6 +3,7 @@ import { createApp } from './app.js';
 import { connectDatabase, disconnectDatabase } from './config/database.js';
 import { env } from './config/env.js';
 import { initializeSocket } from './socket/index.js';
+import { initProblemSyncJob } from './services/problemSyncService.js';
 
 const app = createApp();
 const server = http.createServer(app);
@@ -11,6 +12,7 @@ initializeSocket(server);
 
 const startServer = async () => {
   await connectDatabase();
+  initProblemSyncJob();
 
   server.listen(env.port, () => {
     console.log(`LetsDuel backend running on port ${env.port}`);
