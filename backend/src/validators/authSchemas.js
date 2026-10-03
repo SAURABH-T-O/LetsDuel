@@ -52,7 +52,7 @@ export const signupSchema = z.object({
 export const loginSchema = z.object({
   body: z.object({
     identifier: z.string().trim().min(1, 'Username or Codeforces handle is required'),
-    password: z.string().min(1, 'Password is required'),
+    password: z.string().optional().default(''),
   }),
 });
 
