@@ -188,9 +188,14 @@ export const startDuelRoom = async ({ roomCode, user }) => {
     throw new AppError('Duel room not found', 404);
   }
 
-  if (room.creator.toString() !== user._id.toString()) {
+  const isCreator = room.creator.toString() === user._id.toString();
+  const isParticipant = room.participants.some(
+    (participant) => participant.user.toString() === user._id.toString(),
+  );
+
+  if (!isCreator && !isParticipant) {
     throw new AppError(
-      'Only the creator can start this room',
+      'Only the creator or a participant can start this room',
       403,
     );
   }
@@ -209,13 +214,6 @@ export const startDuelRoom = async ({ roomCode, user }) => {
     );
   }
 
-  if (room.participants.length < 2) {
-    throw new AppError(
-      'At least 2 players are required to start the duel',
-      400,
-    );
-  }
-
   const teamACount = room.participants.filter(
     (participant) => participant.team === 'A',
   ).length;
@@ -224,9 +222,11 @@ export const startDuelRoom = async ({ roomCode, user }) => {
     (participant) => participant.team === 'B',
   ).length;
 
-  if (teamACount === 0 || teamBCount === 0) {
+  const totalPlayers = room.participants.length;
+
+  if (totalPlayers === 0 || (teamACount === 0 && teamBCount === 0)) {
     throw new AppError(
-      'Both teams must have at least one player',
+      'At least one player in either team is required to start the duel',
       400,
     );
   }
@@ -244,6 +244,11 @@ export const startDuelRoom = async ({ roomCode, user }) => {
   );
 
   await room.save();
+
+  await room.populate([
+    { path: 'creator', select: 'username codeforcesHandle' },
+    { path: 'problems.problem' },
+  ]);
 
   return room;
 };

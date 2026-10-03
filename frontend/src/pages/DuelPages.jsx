@@ -492,7 +492,33 @@ export function DuelRoomPage() {
     return duelRoomModes.find((item) => item.id === room?.mode) || duelRoomModes[0];
   }, [room?.mode]);
 
-  const isCreator = currentUser?._id && room?.creator && String(room.creator._id || room.creator) === String(currentUser._id);
+  const currentUserId = currentUser?._id || currentUser?.id;
+  const currentUsername = currentUser?.username;
+  const creatorId = room?.creator?._id || room?.creator?.id || (typeof room?.creator === 'string' ? room?.creator : null);
+  const creatorUsername = room?.creator?.username || (typeof room?.creator === 'string' ? room?.creator : null);
+
+  const isCreator = Boolean(
+    currentUser && (
+      (currentUserId && creatorId && String(creatorId) === String(currentUserId)) ||
+      (currentUsername && creatorUsername && currentUsername === creatorUsername) ||
+      room?.creator === 'You' ||
+      (currentUsername && room?.creator === currentUsername)
+    )
+  );
+
+  const isParticipant = Boolean(
+    currentUser && room?.participants?.some((p) => {
+      const pUserId = p.user?._id || p.user?.id || p.user;
+      return (currentUserId && pUserId && String(pUserId) === String(currentUserId)) ||
+             (currentUsername && p.username === currentUsername);
+    })
+  );
+
+  const teamAPlayers = room?.participants?.filter((p) => p.team === 'A') || [];
+  const teamBPlayers = room?.participants?.filter((p) => p.team === 'B') || [];
+  const hasPlayersInEitherTeam = teamAPlayers.length > 0 || teamBPlayers.length > 0 || (room?.participants?.length || 0) > 0;
+
+  const canStartContest = (isCreator || isParticipant || !currentUser) && hasPlayersInEitherTeam;
 
   const moveToSlot = async (team, slot) => {
     setActionLoading(true);
@@ -578,14 +604,22 @@ export function DuelRoomPage() {
           <div className="room-status-bar">
             <div>
               <span>{room.status === 'active' ? 'Contest Active' : 'Ready Status'}</span>
-              <strong>{room.winner ? `${room.winner.username} won` : room.status === 'active' ? 'Solve on Codeforces, then sync submissions' : 'Waiting for creator to start'}</strong>
+              <strong>
+                {room.winner
+                  ? `${room.winner.username} won`
+                  : room.status === 'active'
+                  ? 'Solve on Codeforces, then sync submissions'
+                  : hasPlayersInEitherTeam
+                  ? 'Ready to start contest'
+                  : 'Waiting for players to join'}
+              </strong>
             </div>
 
             <div className="room-action-row">
               <SecondaryButton onClick={() => navigate('/')}>Leave Room</SecondaryButton>
               <SecondaryButton onClick={() => setRulesOpen(true)}>Rules</SecondaryButton>
               {room.status === 'waiting' && (
-                <PrimaryButton type="button" loading={actionLoading} disabled={!isCreator && Boolean(currentUser)} onClick={startContest}>
+                <PrimaryButton type="button" loading={actionLoading} disabled={!canStartContest} onClick={startContest}>
                   Start Contest
                 </PrimaryButton>
               )}
